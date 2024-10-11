@@ -1,8 +1,10 @@
-<?php 
+<?php
+session_start();
+
 //Create DB connection
 $host = 'localhost';
 $dbname = 'url_shortener';
-$port = '5433';
+$port = '5432';
 $username = 'postgres';
 $password = 'aset';
 
@@ -30,11 +32,22 @@ if($_SERVER['REQUEST_METHOD']=='POST'){
 
     //Check URL validity
     if(filter_var($lurl, FILTER_VALIDATE_URL)){
-        $surl=generateShortCode();
+        $surl = generateShortCode();
 
         //Inserting Urls in to the PostgreSQL DB
-        $urlquery=$pdo->prepare("INSERT INTO urls (lurl, surl) VALUES (:long_code, :short_code)");
+        $urlquery = $pdo->prepare("INSERT INTO urls (lurl, surl) VALUES (:long_code, :short_code)");
         $urlquery->execute(['long_code' => $lurl, 'short_code' => $surl]);
+
+        //Detect Protocol and Host dynamically
+        $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'];
+
+        //Generate the shortened url
+        $shortened_url = "$protocol://$host/$surl";
+
+        //Display and redirect to index.php page
+        $_SESSION['shortened_url'] = $shortened_url;
+        header("Location: index.php");
 
         //Display Shortened URl
         echo "Shortened URL: <a 
